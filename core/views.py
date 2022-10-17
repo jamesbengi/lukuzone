@@ -1,12 +1,16 @@
+from inspect import CO_ASYNC_GENERATOR
 from multiprocessing import context
 from django.shortcuts import render,redirect
 from django.contrib.auth.models import User,auth
 from django.http import HttpResponse
 from django.contrib import messages
-from .models import Profile,Post,LikePost,FollowersCount
+from .models import Profile,Post,LikePost,FollowersCount,Comment
 from django.contrib.auth.decorators import login_required
 from itertools import chain
+from django.views.decorators.csrf import csrf_exempt
 import random
+from django.http import JsonResponse
+from .models import Post,Profile
 
 from core.models import Profile,Post
 # Create your views here.
@@ -49,6 +53,7 @@ def index(request):
 
     suggestions_username_profile_list = list(chain(*username_profile_list))
     return render(request,'index.html',{'user_profile':user_profile,'posts':posts,'suggestions_username_profile_list':suggestions_username_profile_list})
+@csrf_exempt
 def signup(request):
     if request.method =='POST':
         username=request.POST['username']
@@ -61,6 +66,15 @@ def signup(request):
                 return redirect('signup')
             elif User.objects.filter(username=username).exists():
                 messages.info(request,'Username is Taken')
+                return redirect('signup')
+            elif username=="":
+                messages.info(request,'fields cannot be empty')
+                return redirect('signup')
+            elif password < str(5):
+                messages.info(request,'Password length characters must be greater than 5 characters')
+                return redirect('signup')
+            elif username < str(3):
+                messages.info(request,'short username')
                 return redirect('signup')
             else:
                 user=User.objects.create_user(username=username,email=email,password=password)
@@ -211,3 +225,22 @@ def search(request):
         
         username_profile_list = list(chain(*username_profile_list))
     return render(request, 'search.html', {'user_profile': user_profile, 'username_profile_list': username_profile_list})
+def comment(request):
+    user_loggedin=Comment.objects.get(user=request.user.username)
+    comment=Comment.objects.filter(user=user_loggedin)
+    if request.method=='POST':
+        comment=request.POST['comment']
+        save_comment=Comment.objects.create(comment=comment)
+        save_comment.save()
+        return redirect('index')
+    else:
+        return render(request,'index.html',{'comment':comment})
+    # comments functionality
+def delete_comment(request):
+    # delete comments functionality
+
+    pass
+def delete_post(request):
+    # delete posts functionality
+    pass
+
